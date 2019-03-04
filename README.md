@@ -2,7 +2,7 @@
 
 Сборка
   - Получить актуальную версию репозитория на своём ПК
-  - Создать новый проект в Atmel Studio в папке Atmel_Studio_Projects. Убрать галку create directory for solution.
+  - Создать новый проект в Atmel Studio в папке Atmel_Studio_Projects (она уже в репозитории). Убрать галку create directory for solution.
   - В solution explorer удалить дефолтный main.cpp и добавить свой по ссылке (правый-клик по "название проекта" -> add -> existing item в появившемся окне выбрать файл и Add as link)
   - Папку Lib скопировать из Sourse в папку проекта
   - В solution explorer выбрать сверху Show all files

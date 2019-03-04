@@ -4,7 +4,7 @@
   - Получить актуальную версию репозитория на своём ПК
   - Создать новый проект в Atmel Studio в папке Atmel_Studio_Projects. Убрать галку create directory for solution.
   - В solution explorer удалить дефолтный main.cpp и добавить свой по ссылке (правый-клик по "название проекта" -> add -> existing item в появившемся окне выбрать файл и Add as link)
-  - С библиотечными файлами я что-то пока не придумал красивое решение, поэтому папку Lib скопировать из Sourse в папку проекта
+  - Папку Lib скопировать из Sourse в папку проекта
   - В solution explorer выбрать сверху Show all files
   - Правый-клик по папке Lib -> include in project
   - Готово! Можно собирать

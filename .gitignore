@@ -30,6 +30,3 @@
 *.exe
 *.out
 *.app
-
-#Folders
-Atmel_Studio_Projects/

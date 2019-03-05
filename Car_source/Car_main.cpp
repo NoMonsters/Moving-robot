@@ -28,9 +28,11 @@ volatile uint8_t Call_Get_Speed = 0;		//флаг по которому вызы�
 
 const uint8_t How_many_speed_slots = 5;
 const uint8_t How_often_call_PI_reg = 10;
+const double Max_output_for_Reg = 255;
+const double Min_output_for_Reg = 0;
 
-uint8_t const Time_of_one_tic = 32;
-uint16_t const Time_of_one_OVF = 255*Time_of_one_tic;
+const uint8_t Time_of_one_tic = 32;
+const uint16_t Time_of_one_OVF = 255*Time_of_one_tic;
 //***********************************************************
 void ADC_Init(void)
 {
@@ -98,9 +100,12 @@ double Apply_regulator_left(double current_value, double required_value, float K
 	static double output = 0, error = 0;
 	static double output_prev = 0, error_prev = 0;// выход и ошибка с предыдушей итерации
 
+	if (output_prev >= Max_output_for_Reg || output_prev <= Min_output_for_Reg)
+		Ki = 0;
+	
 	error = required_value - current_value;
 	output = output_prev + Kp*(error-error_prev)+Ki*error;
-
+	
 	error_prev = error;
 	output_prev = output;
 
@@ -134,6 +139,9 @@ double Apply_regulator_right(double current_value, double required_value, float 
 {
 	static double output = 0, error = 0;
 	static double output_prev = 0, error_prev = 0;// выход и ошибка с предыдушей итерации
+
+	if (output_prev >= Max_output_for_Reg || output_prev <= Min_output_for_Reg)
+	Ki = 0;
 
 	error = required_value - current_value;
 	output = output_prev + Kp*(error-error_prev)+Ki*error;
@@ -286,7 +294,7 @@ int main(void)
 	
 	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
-	float Radius = -1, Velocity = 0;
+	float Radius = -1, Velocity = 1;
 	bool straight = 0;
 	char Gyro_data_for_UART[20], Float_to_char_buffer[10], UART_buf[60];
 	//PI_regulators Regulator_right(0.35, 0.0085);
@@ -331,8 +339,8 @@ int main(void)
 		if(Call_PI_reg == How_often_call_PI_reg)
 		{
 			Turn_control(Radius, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight, UART_buf);
-			OCR0B = static_cast<uint8_t>(limiter(0,255,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
-			OCR0A = static_cast<uint8_t>(limiter(0,255,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
+			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
+			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
 			
 			Call_PI_reg = 0;
 		}

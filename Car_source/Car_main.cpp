@@ -6,9 +6,6 @@
  */ 
 
 #define F_CPU 8000000UL
-#define How_many_speed_slots 5
-#define How_often_call_PI_reg 10
-#define Time_to_restart_counter 100000
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,8 +26,11 @@ volatile uint32_t OVF_counter = 0;			//количество переполнен
 volatile uint8_t Call_PI_reg = 0;
 volatile uint8_t Call_Get_Speed = 0;		//флаг по которому вызывается считывание скорости
 
+const uint8_t How_many_speed_slots = 5;
+const uint8_t How_often_call_PI_reg = 10;
+
 uint8_t const Time_of_one_tic = 32;
-int const Time_of_one_OVF = 255*Time_of_one_tic;
+uint16_t const Time_of_one_OVF = 255*Time_of_one_tic;
 //***********************************************************
 void ADC_Init(void)
 {
@@ -100,7 +100,7 @@ double Apply_regulator_left(double current_value, double required_value, float K
 
 	error = required_value - current_value;
 	output = output_prev + Kp*(error-error_prev)+Ki*error;
-			
+
 	error_prev = error;
 	output_prev = output;
 

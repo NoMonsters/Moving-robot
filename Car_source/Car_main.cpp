@@ -5,7 +5,7 @@
  * Author : Vasiliy
  */ 
 
-#define F_CPU 8000000UL
+#define F_CPU 16000000UL
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,12 +26,13 @@ volatile uint32_t OVF_counter = 0;			//количество переполнен
 volatile uint8_t Call_PI_reg = 0;
 volatile uint8_t Call_Get_Speed = 0;		//флаг по которому вызывается считывание скорости
 
+const uint16_t TIM2_prescaler = 256;
 const uint8_t How_many_speed_slots = 5;
-const uint8_t How_often_call_PI_reg = 10;
+const uint8_t How_often_call_PI_reg = 20;
 const double Max_output_for_Reg = 255;
 const double Min_output_for_Reg = 0;
 
-const uint8_t Time_of_one_tic = 32;
+const uint8_t Time_of_one_tic = 16;
 const uint16_t Time_of_one_OVF = 255*Time_of_one_tic;
 //***********************************************************
 void ADC_Init(void)
@@ -229,7 +230,7 @@ void Get_speed_left(float &Current_speed_left)
 	static uint32_t Prev_call_time_l = 0;
 	uint32_t Time_now = Get_time();
 			
-	Current_speed_left = 30000000.0/(Time_now - Prev_call_time_l);
+	Current_speed_left = 15000000.0/(Time_now - Prev_call_time_l);
 	Prev_call_time_l = Time_now;	
 
 	Left_Encoder_counter = 0;
@@ -239,7 +240,7 @@ void Get_speed_right(float &Current_speed_right)
 	static uint32_t Prev_call_time_r = 0;
 	uint32_t Time_now = Get_time();
 	
-	Current_speed_right = 30000000.0/(Time_now - Prev_call_time_r);
+	Current_speed_right = 15000000.0/(Time_now - Prev_call_time_r);
 	Prev_call_time_r = Time_now;
 
 	Right_Encoder_counter = 0;

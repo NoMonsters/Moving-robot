@@ -8,7 +8,7 @@
 #ifndef I2C_MASTER_H_					/* Define library H file if not defined */
 #define I2C_MASTER_H_
 
-#define F_CPU 8000000UL							/* Define CPU clock Frequency e.g. here its 8MHz */
+#define F_CPU 16000000UL							/* Define CPU clock Frequency e.g. here its 8MHz */
 #include <avr/io.h>								/* Include AVR std. library file */
 #include <util/delay.h>							/* Include delay header file */
 #include <math.h>								/* Include math function */

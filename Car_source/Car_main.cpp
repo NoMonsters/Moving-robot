@@ -26,7 +26,6 @@ volatile uint32_t OVF_counter = 0;			//количество переполнен
 volatile uint8_t Call_PI_reg = 0;
 volatile uint8_t Call_Get_Speed = 0;		//флаг по которому вызывается считывание скорости
 
-const uint16_t TIM2_prescaler = 256;
 const uint8_t How_many_speed_slots = 5;
 const uint8_t How_often_call_PI_reg = 20;
 const double Max_output_for_Reg = 255;

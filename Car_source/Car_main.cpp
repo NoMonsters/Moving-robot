@@ -17,6 +17,7 @@
 #include "Lib/UART/UART.h"
 #include "Lib/i2C/I2C_Master.h"
 #include "Lib/IMU6050/IMU6050.h"	
+#include "Lib/GPSparse/parseGPS.h"
 
 //*******************глобальные переменные*******************
 volatile uint8_t Left_Encoder_counter = 0;	//количество срабатываний энкодера. Левое колесо
@@ -25,13 +26,18 @@ volatile uint8_t Call_UART = 0;
 volatile uint32_t OVF_counter = 0;			//количество переполнений таймера TIM2
 volatile uint8_t Call_PI_reg = 0;
 volatile uint8_t Call_Get_Speed = 0;		//флаг по которому вызывается считывание скорости
+volatile uint8_t Call_GPS = 0;
+volatile uint8_t Transmit_UART= 0;
 
-const uint16_t TIM2_prescaler = 256;
+const uint8_t How_often_Transmit_UART = 5;
 const uint8_t How_many_speed_slots = 5;
+const uint8_t How_often_read_GPS = 5;
 const uint8_t How_often_call_PI_reg = 20;
+const uint8_t How_often_call_UART = 2;
 const double Max_output_for_Reg = 255;
 const double Min_output_for_Reg = 0;
 
+const uint16_t TIM2_prescaler = 256;
 const uint8_t Time_of_one_tic = 16;
 const uint16_t Time_of_one_OVF = 255*Time_of_one_tic;
 //***********************************************************
@@ -279,15 +285,26 @@ ISR(TIMER2_OVF_vect)
 {
 	OVF_counter++;
 	Call_PI_reg++;		//вызывается каждые 10 переполнения таймера
-	Call_UART++;	
+	Call_UART++;
+	//Call_GPS++;	
+	//Transmit_UART++;
+	
 }
 
 int main(void)
 {
+	char GPSstatus[1], GPS_NS[1], GPS_WE[1];
+	char GPS_str[80];
+	char GPS_symbol_buff;
+	uint8_t GPS_str_symbol_index = 0;
+	bool GPS_str_is_ready = 0;
+	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
+
+	
 	sei();//разрешаем глобальные прерывания
 	//cli();//запрет глобальных прерываний
+	
 	uint32_t Last_speed_check_right = 0, Last_speed_check_left = 0;
-
 	float Current_speed_left = 0;
 	float Current_speed_right = 0;
 	
@@ -308,6 +325,7 @@ int main(void)
 	
     while (1) 
     {
+		//*************************Чтение данных с гироскопа**************************
 		Read_RawValue(Raw_gyro_X_Y_Z_values);
 		for (int i=0; i<=2; i++)
 		{
@@ -315,11 +333,21 @@ int main(void)
 		}
 		//kp = static_cast<float>(ADC_convert(0))/500;
 		//ki = static_cast<float>(ADC_convert(1))/1000;
-		dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
+		//dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
 		//sprintf(Gyro_data_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UART
+		//****************************************************************************
+		
+		//*************************Анализ данных с GPS********************************
+		if(GPS_str_is_ready == true)
+		{
+			parseGPS(GPS_str, GPSstatus, GPSlatitude, GPS_NS, GPSlongitude, GPS_WE, GPS_spd, GPS_hdg);
+			//UART_send_Str(static_cast<int>(GPSlatitude));	
+			//UART_send_char('\n');
+			GPS_str_is_ready = 0;
+		}
+		//****************************************************************************
 		
 		//*************************Вычисление сеоростей*******************************
-		
 		//считываем значение скорости ЛЕВОГО колеса каждые How_many_speed_slots щелей
 		if(Left_Encoder_counter >= How_many_speed_slots)
 		{		
@@ -333,42 +361,46 @@ int main(void)
 			Last_speed_check_right = Get_time();
 		}
 		Dose_speed_zero(Last_speed_check_left, Last_speed_check_right, Current_speed_left, Current_speed_right);
-
 		//*****************************************************************************
 		
 		//Применяем регулирование
-		if(Call_PI_reg == How_often_call_PI_reg)
+		if(Call_PI_reg >= How_often_call_PI_reg)
 		{
 			Turn_control(Radius, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight, UART_buf);
-			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
-			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
+			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.61, 0.15))); //0.187, 0.0712 0.208, 0.098
+			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.61, 0.09)));  //0.207, 0.0792 0.208, 0.098
 			
 			Call_PI_reg = 0;
 		}
 		
-		//Передача информации по UART
-		if(Call_UART == 50)
+		//Приме данных с GPS по UART и формирование сторки
+		if(Call_UART >= How_often_call_UART)
 		{
-			/*UART_send_Str(static_cast<int>(Current_speed_left));
-			UART_send_char(' ');
-			UART_send_Str(static_cast<int>(Current_speed_right));
-			UART_send_char('\n');*/
-			UART_send_Str(Omega_LR_required[1]);
-			UART_send_char(' ');
-			UART_send_Str(Current_speed_right);
-			UART_send_char('\n');
-			
-			
-			//dtostrf(kp, 4, 3, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
-			//sprintf(value_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UAR
-			//UART_send_Str(Float_to_char_buffer);
-			//UART_send_char(' ');
-			//dtostrf(ki, 4, 3, Float_to_char_buffer);
-			//UART_send_Str(Float_to_char_buffer);
-			//UART_send_char('\n');
-			Call_UART = 0;			
-
+			GPS_symbol_buff = UART_get_char();
+			if (GPS_symbol_buff == '$')
+			{
+				GPS_str[GPS_str_symbol_index] = GPS_symbol_buff;
+				while(GPS_symbol_buff != '\n')
+				{
+					GPS_symbol_buff = UART_get_char();
+					GPS_str_symbol_index++;
+					GPS_str[GPS_str_symbol_index] = GPS_symbol_buff;
+					//UART_send_char(GPS_symbol_buff);
+				}
+				GPS_str[GPS_str_symbol_index+1] = '\0';
+				GPS_str_symbol_index = 0;
+				GPS_str_is_ready = true;
+			}		
+				Call_UART = 0;
 		}
+		
+		/*if(Transmit_UART == How_often_Transmit_UART)
+		{
+			
+			UART_send_Str(static_cast<int>(GPSlatitude));
+			UART_send_char('\n');
+			Transmit_UART = 0;
+		}*/
     }
 }
 

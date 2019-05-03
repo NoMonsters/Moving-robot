@@ -1,7 +1,6 @@
-#include "pch.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <iostream>
+#include <string.h>
 
 int p = 10;
 int null_flag = 0;;

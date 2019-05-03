@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "math.h"
 
 double getOmegaAim(double lambda_aim, double phi_aim, double lambda_tek, double phi_tek, double hdg, double abs_speed)

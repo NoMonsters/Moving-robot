@@ -171,20 +171,25 @@ double Calc_Omega_additional_using_gyro(double current_value, double required_va
 
 	return output;
 }
-void Calc_OmegaLeftReq_OmegaRightReq_for_turn(float Radius, float &omega_const_1, float &omega_const_2, float OMEGA,bool straight)
+/*void Calc_OmegaLeftReq_OmegaRightReq_for_turn(float Radius, float &omega_const_1, float &omega_const_2, float OMEGA,bool straight)
 {
 	float const l = 0.067, Wheel_radius = 0.0675;
 
 	omega_const_1 = (Radius - l)*OMEGA/Wheel_radius;
 	omega_const_2 = (Radius + l)*OMEGA/Wheel_radius;
-}
+} */
 void Turn_control(float Radius, float Velocity, float Current_OmegaZ, float *Omega_LR_required, bool straight, char *UART_buf)
 {
-	float omega_const_1 = 6, omega_const_2 = 6;
+	float const Wheel_radius = 0.0675; //from prev function
+	float omega_const_1 = 0, omega_const_2 = 0;
 	float OMEGA = Velocity/Radius, omega_additional = 0;
 	//char Float_to_char_buffer1[5], Float_to_char_buffer2[5];
 	
 	//Calc_OmegaLeftReq_OmegaRightReq_for_turn(Radius, omega_const_1, omega_const_2, OMEGA, straight);
+	
+	omega_const_1 = 2*Velocity*Wheel_radius;
+	omega_const_1 = 2*Velocity*Wheel_radius;
+	
 	omega_additional = Calc_Omega_additional_using_gyro(Current_OmegaZ, OMEGA, 0.5, 0.1);
 	
 	//dtostrf(omega_additional, 5, 2, Float_to_char_buffer1);

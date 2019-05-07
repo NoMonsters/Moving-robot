@@ -180,12 +180,12 @@ void Calc_OmegaLeftReq_OmegaRightReq_for_turn(float Radius, float &omega_const_1
 }
 void Turn_control(float Radius, float Velocity, float Current_OmegaZ, float *Omega_LR_required, bool straight, char *UART_buf)
 {
-	float omega_const_1 = 9, omega_const_2 = 9;
+	float omega_const_1 = 6, omega_const_2 = 6;
 	float OMEGA = Velocity/Radius, omega_additional = 0;
 	//char Float_to_char_buffer1[5], Float_to_char_buffer2[5];
 	
 	//Calc_OmegaLeftReq_OmegaRightReq_for_turn(Radius, omega_const_1, omega_const_2, OMEGA, straight);
-	omega_additional = Calc_Omega_additional_using_gyro(Current_OmegaZ, OMEGA, 0.5, 0.05);
+	omega_additional = Calc_Omega_additional_using_gyro(Current_OmegaZ, OMEGA, 0.5, 0.1);
 	
 	//dtostrf(omega_additional, 5, 2, Float_to_char_buffer1);
 	//dtostrf(Current_OmegaZ, 5, 2, Float_to_char_buffer2);
@@ -251,7 +251,7 @@ void Get_speed_right(float &Current_speed_right)
 
 	Right_Encoder_counter = 0;
 }
-void Dose_speed_zero(uint32_t Last_speed_check_left, uint32_t Last_speed_check_right, float &Current_speed_left , float &Current_speed_right)
+void Does_speed_zero(uint32_t Last_speed_check_left, uint32_t Last_speed_check_right, float &Current_speed_left , float &Current_speed_right)
 {
 	uint32_t Current_time = Get_time();
 	
@@ -312,7 +312,7 @@ int main(void)
 	
 	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
-	float Radius = -1, Velocity = 1;
+	float Radius = -0.5, Velocity = 0.5;
 	bool straight = 0;
 	char Gyro_data_for_UART[20], Float_to_char_buffer[10], UART_buf[60];
 	//PI_regulators Regulator_right(0.35, 0.0085);
@@ -360,7 +360,7 @@ int main(void)
 			Get_speed_right(Current_speed_right);
 			Last_speed_check_right = Get_time();
 		}
-		Dose_speed_zero(Last_speed_check_left, Last_speed_check_right, Current_speed_left, Current_speed_right);
+		Does_speed_zero(Last_speed_check_left, Last_speed_check_right, Current_speed_left, Current_speed_right);
 		//*****************************************************************************
 		
 		//Применяем регулирование
@@ -376,7 +376,7 @@ int main(void)
 		//Приме данных с GPS по UART и формирование сторки
 		if(Call_UART >= How_often_call_UART)
 		{
-			GPS_symbol_buff = UART_get_char();
+			/*GPS_symbol_buff = UART_get_char();
 			if (GPS_symbol_buff == '$')
 			{
 				GPS_str[GPS_str_symbol_index] = GPS_symbol_buff;
@@ -390,7 +390,7 @@ int main(void)
 				GPS_str[GPS_str_symbol_index+1] = '\0';
 				GPS_str_symbol_index = 0;
 				GPS_str_is_ready = true;
-			}		
+			}		*/
 				Call_UART = 0;
 		}
 		

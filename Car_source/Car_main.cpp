@@ -180,15 +180,15 @@ double Calc_Omega_additional_using_gyro(double current_value, double required_va
 } */
 void Turn_control(float Radius, float Velocity, float Current_OmegaZ, float *Omega_LR_required, bool straight, char *UART_buf)
 {
-	float const Wheel_radius = 0.0675; //from prev function
+	static float const Wheel_radius = 0.03375; //from prev function
 	float omega_const_1 = 0, omega_const_2 = 0;
 	float OMEGA = Velocity/Radius, omega_additional = 0;
 	//char Float_to_char_buffer1[5], Float_to_char_buffer2[5];
 	
 	//Calc_OmegaLeftReq_OmegaRightReq_for_turn(Radius, omega_const_1, omega_const_2, OMEGA, straight);
 	
-	omega_const_1 = 2*Velocity*Wheel_radius;
-	omega_const_1 = 2*Velocity*Wheel_radius;
+	omega_const_1 = 2*Velocity/Wheel_radius;
+	omega_const_2 = 2*Velocity/Wheel_radius;
 	
 	omega_additional = Calc_Omega_additional_using_gyro(Current_OmegaZ, OMEGA, 0.5, 0.1);
 	
@@ -317,7 +317,7 @@ int main(void)
 	
 	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
-	float Radius = -0.5, Velocity = 0.5;
+	float Radius = -0.4, Velocity = 0.1;
 	bool straight = 0;
 	char Gyro_data_for_UART[20], Float_to_char_buffer[10], UART_buf[60];
 	//PI_regulators Regulator_right(0.35, 0.0085);
@@ -372,8 +372,8 @@ int main(void)
 		if(Call_PI_reg >= How_often_call_PI_reg)
 		{
 			Turn_control(Radius, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight, UART_buf);
-			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.61, 0.15))); //0.187, 0.0712 0.208, 0.098
-			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.61, 0.09)));  //0.207, 0.0792 0.208, 0.098
+			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
+			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
 			
 			Call_PI_reg = 0;
 		}

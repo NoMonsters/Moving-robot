@@ -29,11 +29,11 @@ volatile uint8_t Call_Get_Speed = 0;		//флаг по которому вызы�
 volatile uint8_t Call_GPS = 0;
 volatile uint8_t Transmit_UART= 0;
 
-const uint8_t How_often_Transmit_UART = 5;
+const uint8_t How_often_Transmit_UART = 15;
 const uint8_t How_many_speed_slots = 5;
 const uint8_t How_often_read_GPS = 5;
 const uint8_t How_often_call_PI_reg = 20;
-const uint8_t How_often_call_UART = 2;
+const uint8_t How_often_call_UART = 50;
 const double Max_output_for_Reg = 255;
 const double Min_output_for_Reg = 0;
 
@@ -190,7 +190,7 @@ void Turn_control(float Radius, float Velocity, float Current_OmegaZ, float *Ome
 	omega_const_1 = 2*Velocity/Wheel_radius;
 	omega_const_2 = 2*Velocity/Wheel_radius;
 	
-	omega_additional = Calc_Omega_additional_using_gyro(Current_OmegaZ, OMEGA, 0.5, 0.1);
+	omega_additional = Calc_Omega_additional_using_gyro(Current_OmegaZ, OMEGA, 10, 0.5); //10, 0.1
 	
 	//dtostrf(omega_additional, 5, 2, Float_to_char_buffer1);
 	//dtostrf(Current_OmegaZ, 5, 2, Float_to_char_buffer2);
@@ -317,7 +317,9 @@ int main(void)
 	
 	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
+		
 	float Radius = -0.4, Velocity = 0.1;
+	
 	bool straight = 0;
 	char Gyro_data_for_UART[20], Float_to_char_buffer[10], UART_buf[60];
 	//PI_regulators Regulator_right(0.35, 0.0085);
@@ -338,8 +340,8 @@ int main(void)
 		}
 		//kp = static_cast<float>(ADC_convert(0))/500;
 		//ki = static_cast<float>(ADC_convert(1))/1000;
-		//dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
-		//sprintf(Gyro_data_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UART
+		dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
+		sprintf(Gyro_data_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UART
 		//****************************************************************************
 		
 		//*************************Анализ данных с GPS********************************
@@ -372,8 +374,8 @@ int main(void)
 		if(Call_PI_reg >= How_often_call_PI_reg)
 		{
 			Turn_control(Radius, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight, UART_buf);
-			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
-			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
+			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.7, 0.02)));//Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
+			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.7, 0.02)));//Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
 			
 			Call_PI_reg = 0;
 		}
@@ -381,7 +383,7 @@ int main(void)
 		//Приме данных с GPS по UART и формирование сторки
 		if(Call_UART >= How_often_call_UART)
 		{
-			/*GPS_symbol_buff = UART_get_char();
+			GPS_symbol_buff = UART_get_char();
 			if (GPS_symbol_buff == '$')
 			{
 				GPS_str[GPS_str_symbol_index] = GPS_symbol_buff;
@@ -391,18 +393,18 @@ int main(void)
 					GPS_str_symbol_index++;
 					GPS_str[GPS_str_symbol_index] = GPS_symbol_buff;
 					//UART_send_char(GPS_symbol_buff);
-				}
+				}	
 				GPS_str[GPS_str_symbol_index+1] = '\0';
 				GPS_str_symbol_index = 0;
 				GPS_str_is_ready = true;
-			}		*/
+			}	
 				Call_UART = 0;
 		}
 		
 		/*if(Transmit_UART == How_often_Transmit_UART)
 		{
 			
-			UART_send_Str(static_cast<int>(GPSlatitude));
+			UART_send_Str(Gyro_data_for_UART);
 			UART_send_char('\n');
 			Transmit_UART = 0;
 		}*/

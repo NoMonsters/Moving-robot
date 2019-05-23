@@ -22,41 +22,24 @@
 //*******************глобальные переменные*******************
 volatile uint8_t Left_Encoder_counter = 0;	//количество срабатываний энкодера. Левое колесо
 volatile uint8_t Right_Encoder_counter = 0;	//количество срабатываний энкодера. Правое колесо
-volatile uint8_t Call_UART = 0;
 volatile uint32_t OVF_counter = 0;			//количество переполнений таймера TIM2
 volatile uint8_t Call_PI_reg = 0;
 volatile uint8_t Call_Get_Speed = 0;		//флаг по которому вызывается считывание скорости
 volatile uint8_t Call_GPS = 0;
-volatile uint8_t Transmit_UART= 0;
+volatile uint8_t Transmit_UART = 0;
 
 const uint8_t How_often_Transmit_UART = 15;
 const uint8_t How_many_speed_slots = 5;
-const uint8_t How_often_read_GPS = 5;
 const uint8_t How_often_call_PI_reg = 20;
-const uint8_t How_often_call_UART = 50;
+const uint8_t How_often_Call_GPS = 50;
 const double Max_output_for_Reg = 255;
 const double Min_output_for_Reg = 0;
 
 const uint16_t TIM2_prescaler = 256;
 const uint8_t Time_of_one_tic = 16;
 const uint16_t Time_of_one_OVF = 255*Time_of_one_tic;
+
 //***********************************************************
-void ADC_Init(void)
-{
-	ADCSRA |= (1<<ADEN)								// Разрешение использования АЦП
-	|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);				//Делитель 128 = 64 кГц
-	ADMUX |= (1<<REFS1)|(1<<REFS0);					//Внутренний Источник ОН 2,56в, вход ADC0
-}
-uint8_t ADC_convert (uint8_t input)
-{
-	if (input == 1)
-		ADMUX |= (1<<MUX0);
-	else
-		ADMUX &=~ (1<<MUX0);
-	ADCSRA |= (1<<ADSC);							//Начинаем преобразование
-	while((ADCSRA & (1<<ADSC)));					//проверим закончилось ли аналого-цифровое преобразование
-	return static_cast<uint8_t>(ADC>>2);
-}
 
 double limiter(double MIN, double MAX, double value)
 {
@@ -74,34 +57,6 @@ uint32_t Get_time()
 	return Current_Time;
 }
 
-/*class PI_regulators
-{
-	protected:
-		double Kp;
-		double Ki;
-	public:
-		PI_regulators(): Kp(0.1), Ki(0.01) //конструктор по умолчанию
-		{}
-		PI_regulators(double value1, double value2): Kp(value1), Ki(value2)//конструктор по двум кэфам
-		{}
-		void Set_Kp(double value)
-		{Kp = value;}
-		void Set_Ki(double value)
-		{Ki = value;}
-		double Apply_regulator(double current_value, double required_value)// const значит тут, что этот метод не может изменять поля класса
-		{
-			static double output, error;
-			static double output_prev = 0, error_prev = 0;// выход и ошибка с предыдушей итерации
-
-			error = required_value - current_value;
-			output = output_prev + Kp*(error-error_prev)+Ki*error;
-			
-			error_prev = error;
-			output_prev = output;
-
-			return output;
-		}
-};*/
 double Apply_regulator_left(double current_value, double required_value, float Kp, float Ki)
 {
 	static double output = 0, error = 0;
@@ -118,30 +73,7 @@ double Apply_regulator_left(double current_value, double required_value, float K
 
 	return output;
 }
-/*double Apply_regulator_left_classic(double current_value, double required_value, float Kp, float Ki)
-{
-	static double output = 0, error = 0;
-	static double integral_prev = 0;
 
-	error = required_value - current_value;
-	output = Kp*error  + integral_prev + Ki*error;
-	
-	integral_prev = Ki*error;
-
-	return output;
-}*/
-/*double Apply_regulator_right_classic(double current_value, double required_value, float Kp, float Ki)
-{
-	static double output = 0, error = 0;
-	static double integral_prev = 0;
-
-	error = required_value - current_value;
-	output = Kp*error + integral_prev + Ki*error;
-	
-	integral_prev = Ki*error;
-
-	return output;
-}*/
 double Apply_regulator_right(double current_value, double required_value, float Kp, float Ki)
 {
 	static double output = 0, error = 0;
@@ -275,7 +207,6 @@ void Init_all()
 	UART_init();
 	I2C_Init();
 	MPU6050_Init();
-	ADC_Init();
 }
 
 ISR(INT0_vect)
@@ -290,9 +221,8 @@ ISR(TIMER2_OVF_vect)
 {
 	OVF_counter++;
 	Call_PI_reg++;		//вызывается каждые 10 переполнения таймера
-	Call_UART++;
-	//Call_GPS++;	
-	//Transmit_UART++;
+	Call_GPS++;
+	Transmit_UART++;
 	
 }
 
@@ -304,16 +234,14 @@ int main(void)
 	uint8_t GPS_str_symbol_index = 0;
 	bool GPS_str_is_ready = 0;
 	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
+	double omegaAim = 0;
 
 	
 	sei();//разрешаем глобальные прерывания
-	//cli();//запрет глобальных прерываний
 	
 	uint32_t Last_speed_check_right = 0, Last_speed_check_left = 0;
 	float Current_speed_left = 0;
 	float Current_speed_right = 0;
-	
-	//float kp = 0, ki = 0;
 	
 	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
@@ -322,11 +250,6 @@ int main(void)
 	
 	bool straight = 0;
 	char Gyro_data_for_UART[20], Float_to_char_buffer[10], UART_buf[60];
-	//PI_regulators Regulator_right(0.35, 0.0085);
-	//PI_regulators Regulator_left(0.357, 0.0852);
-		
-	//Regulator_left.Apply_regulator(0.0, 0.0);	//инициализация регулятора
-	//Regulator_right.Apply_regulator(0.0, 0.0);	//инициализация регулятора
 	
 	Init_all();
 	
@@ -338,11 +261,13 @@ int main(void)
 		{
 			Real_gyro_X_Y_Z_values[i] = Raw_gyro_X_Y_Z_values[i]/939.6544;//пересчет сырых данных в реальные Raw_gyro_X_Y_Z_values[i]/16.4/57.296, где 57.296 - пересчет в рад/с
 		}
-		//kp = static_cast<float>(ADC_convert(0))/500;
-		//ki = static_cast<float>(ADC_convert(1))/1000;
+
 		dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
 		sprintf(Gyro_data_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UART
 		//****************************************************************************
+		
+		
+		
 		
 		//*************************Анализ данных с GPS********************************
 		if(GPS_str_is_ready == true)
@@ -354,7 +279,10 @@ int main(void)
 		}
 		//****************************************************************************
 		
-		//*************************Вычисление сеоростей*******************************
+		
+		
+		
+		//*************************Вычисление скоростей*******************************
 		//считываем значение скорости ЛЕВОГО колеса каждые How_many_speed_slots щелей
 		if(Left_Encoder_counter >= How_many_speed_slots)
 		{		
@@ -370,7 +298,10 @@ int main(void)
 		Does_speed_zero(Last_speed_check_left, Last_speed_check_right, Current_speed_left, Current_speed_right);
 		//*****************************************************************************
 		
-		//Применяем регулирование
+		
+		
+		
+		//*************************Применение регулирования*******************************
 		if(Call_PI_reg >= How_often_call_PI_reg)
 		{
 			Turn_control(Radius, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight, UART_buf);
@@ -380,8 +311,22 @@ int main(void)
 			Call_PI_reg = 0;
 		}
 		
-		//Приме данных с GPS по UART и формирование сторки
-		if(Call_UART >= How_often_call_UART)
+		
+		
+		
+		//*************************Проект считывания GPS с другой платы*******************************
+		/*if(Call_GPS >= How_often_Call_GPS)
+		{
+			I2C_Start_Wait(0xA0);
+			I2C_Write(0x96);
+			I2C_Repeated_Start(0xA0);
+			test = I2C_Read_Nack();
+			I2C_Stop();
+			Call_GPS = 0;
+		}*/
+		
+		//*************************Прием GPS и формирование строки*******************************
+		if(Call_GPS >= How_often_Call_GPS)
 		{
 			GPS_symbol_buff = UART_get_char();
 			if (GPS_symbol_buff == '$')
@@ -392,22 +337,23 @@ int main(void)
 					GPS_symbol_buff = UART_get_char();
 					GPS_str_symbol_index++;
 					GPS_str[GPS_str_symbol_index] = GPS_symbol_buff;
-					//UART_send_char(GPS_symbol_buff);
 				}	
 				GPS_str[GPS_str_symbol_index+1] = '\0';
 				GPS_str_symbol_index = 0;
 				GPS_str_is_ready = true;
 			}	
-				Call_UART = 0;
+			Call_GPS = 0;
 		}
 		
-		/*if(Transmit_UART == How_often_Transmit_UART)
+		
+		
+		//*************************Передача в порт для тестов*******************************
+		if(Transmit_UART == How_often_Transmit_UART)
 		{
-			
-			UART_send_Str(Gyro_data_for_UART);
+			UART_send_Str(GPS_str);
 			UART_send_char('\n');
 			Transmit_UART = 0;
-		}*/
+		}
     }
 }
 

@@ -18,6 +18,7 @@
 #include "Lib/i2C/I2C_Master.h"
 #include "Lib/IMU6050/IMU6050.h"	
 #include "Lib/GPSparse/parseGPS.h"
+#include "Lib/NAV/getOmegaAim.h"
 
 //*******************глобальные переменные*******************
 volatile uint8_t Left_Encoder_counter = 0;	//количество срабатываний энкодера. Левое колесо
@@ -26,12 +27,14 @@ volatile uint32_t OVF_counter = 0;			//количество переполнен
 volatile uint8_t Call_PI_reg = 0;
 volatile uint8_t Call_Get_Speed = 0;		//флаг по которому вызывается считывание скорости
 volatile uint8_t Call_GPS = 0;
+volatile uint8_t Calc_Omega = 0;           //флаг по которому вызывается расчет угловой скорости на цель
 volatile uint8_t Transmit_UART = 0;
 
 const uint8_t How_often_Transmit_UART = 15;
 const uint8_t How_many_speed_slots = 5;
 const uint8_t How_often_call_PI_reg = 20;
-const uint8_t How_often_Call_GPS = 50;
+const uint8_t How_often_call_GPS = 50;
+const uint8_t How_often_calc_omega = 50;
 const double Max_output_for_Reg = 255;
 const double Min_output_for_Reg = 0;
 
@@ -110,11 +113,11 @@ double Calc_Omega_additional_using_gyro(double current_value, double required_va
 	omega_const_1 = (Radius - l)*OMEGA/Wheel_radius;
 	omega_const_2 = (Radius + l)*OMEGA/Wheel_radius;
 } */
-void Turn_control(float Radius, float Velocity, float Current_OmegaZ, float *Omega_LR_required, bool straight, char *UART_buf)
+void Turn_control(float OMEGA, float Velocity, float Current_OmegaZ, float *Omega_LR_required, bool straight, char *UART_buf)
 {
 	static float const Wheel_radius = 0.03375; //from prev function
 	float omega_const_1 = 0, omega_const_2 = 0;
-	float OMEGA = Velocity/Radius, omega_additional = 0;
+	float Radius = Velocity/OMEGA, omega_additional = 0;
 	//char Float_to_char_buffer1[5], Float_to_char_buffer2[5];
 	
 	//Calc_OmegaLeftReq_OmegaRightReq_for_turn(Radius, omega_const_1, omega_const_2, OMEGA, straight);
@@ -223,6 +226,7 @@ ISR(TIMER2_OVF_vect)
 	Call_PI_reg++;		//вызывается каждые 10 переполнения таймера
 	Call_GPS++;
 	Transmit_UART++;
+	Calc_Omega++;
 	
 }
 
@@ -246,7 +250,7 @@ int main(void)
 	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
 		
-	float Radius = -0.4, Velocity = 0.1;
+	float Velocity = 0.1;
 	
 	bool straight = 0;
 	char Gyro_data_for_UART[20], Float_to_char_buffer[10], UART_buf[60];
@@ -262,14 +266,13 @@ int main(void)
 			Real_gyro_X_Y_Z_values[i] = Raw_gyro_X_Y_Z_values[i]/939.6544;//пересчет сырых данных в реальные Raw_gyro_X_Y_Z_values[i]/16.4/57.296, где 57.296 - пересчет в рад/с
 		}
 
-		dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
-		sprintf(Gyro_data_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UART
-		//****************************************************************************
+		//dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
+		//sprintf(Gyro_data_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UART
 		
 		
 		
 		
-		//*************************Анализ данных с GPS********************************
+		//*************************Преобразование строки с GPS********************************
 		if(GPS_str_is_ready == true)
 		{
 			parseGPS(GPS_str, GPSstatus, GPSlatitude, GPS_NS, GPSlongitude, GPS_WE, GPS_spd, GPS_hdg);
@@ -277,26 +280,36 @@ int main(void)
 			//UART_send_char('\n');
 			GPS_str_is_ready = 0;
 		}
-		//****************************************************************************
+		
+		
+		
+		//**************************Вычисление угловой скорости на цель**************************
+		if((Calc_Omega>=How_often_calc_omega) && (GPS_spd>0))
+		{
+			omegaAim = 0.1 * getOmegaAim(37.684, 55.7661, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
+		}
 		
 		
 		
 		
-		//*************************Вычисление скоростей*******************************
+		//*************************Считывание скоростей колес*******************************
+		
 		//считываем значение скорости ЛЕВОГО колеса каждые How_many_speed_slots щелей
 		if(Left_Encoder_counter >= How_many_speed_slots)
 		{		
 			Get_speed_left(Current_speed_left);
 			Last_speed_check_left = Get_time();
 		}
+		
 		//считываем значение скорости ПРАВОГО колеса каждые How_many_speed_slots щелей
 		if(Right_Encoder_counter >= How_many_speed_slots)
 		{
 			Get_speed_right(Current_speed_right);
 			Last_speed_check_right = Get_time();
 		}
+		
 		Does_speed_zero(Last_speed_check_left, Last_speed_check_right, Current_speed_left, Current_speed_right);
-		//*****************************************************************************
+
 		
 		
 		
@@ -304,7 +317,7 @@ int main(void)
 		//*************************Применение регулирования*******************************
 		if(Call_PI_reg >= How_often_call_PI_reg)
 		{
-			Turn_control(Radius, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight, UART_buf);
+			Turn_control(omegaAim, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight, UART_buf);
 			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.7, 0.02)));//Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
 			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.7, 0.02)));//Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
 			
@@ -325,8 +338,11 @@ int main(void)
 			Call_GPS = 0;
 		}*/
 		
+		
+		
+		
 		//*************************Прием GPS и формирование строки*******************************
-		if(Call_GPS >= How_often_Call_GPS)
+		if(Call_GPS >= How_often_call_GPS)
 		{
 			GPS_symbol_buff = UART_get_char();
 			if (GPS_symbol_buff == '$')
@@ -344,6 +360,7 @@ int main(void)
 			}	
 			Call_GPS = 0;
 		}
+		
 		
 		
 		

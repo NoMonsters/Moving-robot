@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "GPS_str2double.h"
+#include "parseGPS.h"
 
 void parseGPS(char* GPSstring, char* GPSstatus, double &GPSlatitude, char* GPS_NS, double &GPSlongitude, char* GPS_WE, double &GPS_spd, double &GPS_hdg)
 {

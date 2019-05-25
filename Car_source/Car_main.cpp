@@ -20,6 +20,8 @@
 #include "Lib/GPSparse/parseGPS.h"
 #include "Lib/NAV/getOmegaAim.h"
 
+//double getOmegaAim(double*, double*, double, double, double, double);
+
 //*******************глобальные переменные*******************
 volatile uint8_t Left_Encoder_counter = 0;	//количество срабатываний энкодера. Левое колесо
 volatile uint8_t Right_Encoder_counter = 0;	//количество срабатываний энкодера. Правое колесо
@@ -237,8 +239,11 @@ int main(void)
 	char GPS_symbol_buff;
 	uint8_t GPS_str_symbol_index = 0;
 	bool GPS_str_is_ready = 0;
+	
 	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
 	double omegaAim = 0;
+	double latitudeAim[] = {0.0, 0.0};
+	double longitudeAim[] = {0.0, 0.0};
 
 	
 	sei();//разрешаем глобальные прерывания
@@ -286,7 +291,7 @@ int main(void)
 		//**************************Вычисление угловой скорости на цель**************************
 		if(Calc_Omega>=How_often_calc_omega && GPS_spd>0)
 		{
-			omegaAim = 0.1 * getOmegaAim(37.684, 55.7661, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
+			omegaAim = 0.1 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
 		}
 		
 		

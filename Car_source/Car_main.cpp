@@ -127,7 +127,7 @@ void Turn_control(float OMEGA, float Velocity, float Current_OmegaZ, float *Omeg
 	omega_const_1 = 2*Velocity/Wheel_radius;
 	omega_const_2 = 2*Velocity/Wheel_radius;
 	
-	omega_additional = Calc_Omega_additional_using_gyro(Current_OmegaZ, OMEGA, 10, 0.5); //10, 0.1
+	omega_additional = Calc_Omega_additional_using_gyro(Current_OmegaZ, OMEGA, 10.0, 0.1); //10, 0.1
 	
 	//dtostrf(omega_additional, 5, 2, Float_to_char_buffer1);
 	//dtostrf(Current_OmegaZ, 5, 2, Float_to_char_buffer2);
@@ -242,8 +242,8 @@ int main(void)
 	
 	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
 	double omegaAim = 0;
-	double latitudeAim[] = {0.0, 0.0};
-	double longitudeAim[] = {0.0, 0.0};
+	double latitudeAim[] = {55.604868, 55.604868};
+	double longitudeAim[] = {38.069190, 38.069190};
 
 	
 	sei();//разрешаем глобальные прерывания
@@ -264,6 +264,7 @@ int main(void)
 	
     while (1) 
     {
+		omegaAim = 0;
 		//*************************Чтение данных с гироскопа**************************
 		Read_RawValue(Raw_gyro_X_Y_Z_values);
 		for (int i=0; i<=2; i++)
@@ -281,7 +282,8 @@ int main(void)
 		if(GPS_str_is_ready == true)
 		{
 			parseGPS(GPS_str, GPSstatus, GPSlatitude, GPS_NS, GPSlongitude, GPS_WE, GPS_spd, GPS_hdg);
-			//UART_send_Str(static_cast<int>(GPSlatitude));	
+			//dtostrf(GPSlatitude, 4, 5, Float_to_char_buffer);
+			//UART_send_Str(Float_to_char_buffer);	
 			//UART_send_char('\n');
 			GPS_str_is_ready = 0;
 		}
@@ -289,9 +291,12 @@ int main(void)
 		
 		
 		//**************************Вычисление угловой скорости на цель**************************
-		if(Calc_Omega>=How_often_calc_omega && GPS_spd>0)
+		if(Calc_Omega>=How_often_calc_omega && GPS_hdg!=0.0)
 		{
-			omegaAim = 0.1 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
+			omegaAim = 0.3 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
+			dtostrf(omegaAim, 4, 5, Float_to_char_buffer);
+			//UART_send_Str(Float_to_char_buffer);
+			//UART_send_char('\n');
 		}
 		
 		
@@ -374,7 +379,11 @@ int main(void)
 		//if(Transmit_UART >= How_often_Transmit_UART && GPS_str_is_ready == true)
 		if(GPS_str_is_ready == true)
 		{
-			UART_send_Str(GPS_str);
+			dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
+			UART_send_Str(Float_to_char_buffer);
+			UART_send_char(' ');
+			dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
+			UART_send_Str(Float_to_char_buffer);
 			UART_send_char('\n');
 			Transmit_UART = 0;
 		}

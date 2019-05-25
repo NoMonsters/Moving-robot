@@ -1,7 +1,7 @@
 #ifndef UART_H_					/* Define library H file if not defined */
 #define UART_H_
 
-#define F_CPU 16000000UL						/* Define CPU clock Frequency e.g. here its 8MHz */
+#define F_CPU 16000000UL				/* Define CPU clock Frequency e.g. here its 8MHz */
 #define BAUD 38400L						// Скорость обмена данными
 #define DEC 10							//Десятичная система
 

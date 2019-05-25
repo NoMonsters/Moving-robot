@@ -2,11 +2,11 @@
 
 double getOmegaAim(double lambda_aim, double phi_aim, double lambda_tek, double phi_tek, double hdg, double abs_speed)
 {
-	double x_aim, y_aim; //координаты цели в новой ортодромической — 
-	double speed_x, speed_y; //вектор скорости в ортодромической — 
-	double abs_aim; // модуль вектора направлени€ на цель
-	double vect_prod; // переменна€ дл€ хранени€ вертикальной компоненты векторного произведени€
-	double alpha; // угол на цель
+	double x_aim = 0, y_aim = 0; //координаты цели в новой ортодромической — 
+	double speed_x = 0, speed_y = 0; //вектор скорости в ортодромической — 
+	double abs_aim = 0; // модуль вектора направлени€ на цель
+	double vect_prod = 0; // переменна€ дл€ хранени€ вертикальной компоненты векторного произведени€
+	double alpha = 0; // угол на цель
 
 	const long Earth_Radius = 6371000; //радиус «емли
 	const float pi = 3.14159265;
@@ -14,8 +14,32 @@ double getOmegaAim(double lambda_aim, double phi_aim, double lambda_tek, double 
 	x_aim = ((lambda_aim - lambda_tek)*pi / 180)*Earth_Radius;
 	y_aim = ((phi_aim - phi_tek)*pi / 180)*Earth_Radius; //перевод в ортодромические координаты, инициализаци€ —  в начальной точке
 
-	speed_x = abs_speed * sin(hdg);
-	speed_y = abs_speed * cos(hdg); // координаты вектора текущей скорости в ортодромической — 
+	hdg = hdg * pi / 180; //перевод в радианы
+
+	// координаты вектора текущей скорости в ортодромической — 
+	if (hdg <= pi / 2)
+	{
+		speed_x = abs_speed * sin(hdg);
+		speed_y = abs_speed * cos(hdg);
+	}
+	else
+		if ((hdg > pi / 2) && (hdg <= pi))
+		{
+			speed_x = abs_speed * sin(pi - hdg);
+			speed_y = -abs_speed * cos(pi - hdg);
+		}
+		else
+			if ((hdg > pi) && (hdg <= 3 * pi / 2))
+			{
+				speed_x = -abs_speed * sin(hdg - pi);
+				speed_y = -abs_speed * cos(hdg - pi);
+			}
+			else
+				if ((hdg > 3 * pi / 2) && (hdg <= 2 * pi))
+				{
+					speed_x = -abs_speed * sin(2 * pi - hdg);
+					speed_y = abs_speed * cos(2 * pi - hdg);
+				}
 
 	abs_aim = sqrt(pow(x_aim, 2) + pow(y_aim, 2)); //расчет модул€ вектора направлени€ на цель
 
@@ -33,7 +57,6 @@ double getOmegaAim(double lambda_aim, double phi_aim, double lambda_tek, double 
 	{
 		alpha = pi - alpha;
 	}
-
-	alpha = alpha * 180 / pi; //перевод в градусы (дл€ индикации и проверки)
+	 
 	return alpha;
 }

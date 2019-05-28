@@ -19,7 +19,6 @@
 #include "Lib/i2C/I2C_Master.h"
 #include "Lib/IMU6050/IMU6050.h"	
 #include "Lib/GPSparse/parseGPS.h"
-#include "Lib/NAV/getOmegaAim.h"
 #include "Lib/NAV/Navigation.h"
 #include "Lib/Hardware/HardwareSetup.h"
 #include "Lib/Hardware/Time.h"

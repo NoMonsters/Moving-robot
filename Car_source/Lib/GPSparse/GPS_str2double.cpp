@@ -1,6 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "GPS_str2double.h"
 
 int p = 10;
 int null_flag = 0;;

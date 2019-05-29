@@ -27,6 +27,7 @@ double getOmegaAim(double* lambda_aim, double* phi_aim, double lambda_tek, doubl
 	double speed_x = 0, speed_y = 0; //вектор скорости в ортодромической СК
 	double abs_aim = 0; // модуль вектора направления на цель
 	double vect_prod = 0; // переменная для хранения вертикальной компоненты векторного произведения
+	double scalar_prod; //скалярное произведение векторов
 	double alpha = 0; // угол на цель
 	static int k = 0; // номер точки, к которой едем
 	double eps = 1.0; // радиус окрестности точки (точность)
@@ -69,19 +70,28 @@ double getOmegaAim(double* lambda_aim, double* phi_aim, double lambda_tek, doubl
 				}
 
 	vect_prod = speed_x * y_aim - speed_y * x_aim; //вертикальная компонента векторного произведения вектора на цель и скорости
+	scalar_prod = speed_x * x_aim + speed_y * y_aim; // скалярное произведение векторов в плоскости местного горизонта
 
-	alpha = asin(vect_prod / (abs_speed*abs_aim)); //расчет угла на цель через модуль векторного произведения
-
-	 //тк арксинус считает от -pi/2 до pi/2 при переходе цели ниже оси х нужно пересчитать
-	if ((phi_aim[k] < phi_tek) && (lambda_aim[k] > lambda_tek))
+	//расчет угла на цель через модуль векторного произведения, для однозначного определения координатной четверти исп sin и cos (векторное и скалярное пр)
+	if ((vect_prod>0) && (scalar_prod>0))
 	{
-		alpha = -alpha - pi;
+		alpha = asin(vect_prod / (abs_speed * abs_aim));
 	}
-
-	if ((phi_aim[k] < phi_tek) && (lambda_aim[k] < lambda_tek))
-	{
-		alpha = pi - alpha;
-	}
+	else
+		if ((vect_prod > 0) && (scalar_prod < 0))
+		{
+			alpha = pi - asin(vect_prod / (abs_speed * abs_aim));
+		}
+		else
+			if ((vect_prod < 0) && (scalar_prod < 0))
+			{
+				alpha = -pi - asin(vect_prod / (abs_speed * abs_aim));
+			}
+			else
+				if ((vect_prod < 0) && (scalar_prod > 0))
+				{
+					alpha = asin(vect_prod / (abs_speed * abs_aim));
+				}
 	 
 	//переключение на следующую цель
 	if (abs_aim < eps)

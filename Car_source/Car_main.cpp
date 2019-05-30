@@ -24,6 +24,7 @@
 #include "Lib/Hardware/Time.h"
 #include "Lib/PI//Regulators.h"
 #include "Lib/Encoder/GetSpeed.h"
+#include "Lib/HMC5883L/HMC5883L.h"
 
 
 //*******************глобальные переменные*******************
@@ -61,6 +62,7 @@ void Init_all()
 	UART_init();
 	I2C_Init();
 	MPU6050_Init();
+
 }
 
 ISR(INT0_vect)
@@ -106,6 +108,8 @@ int main(void)
 	bool straight = 0;
 	char Gyro_data_for_UART[20], Float_to_char_buffer[10];
 	
+	float Raw_HDG_X_Y_Z_values[] = {0, 0, 0};
+	
 	Init_all();
 	sei();//разрешаем глобальные прерывания
 	
@@ -118,6 +122,8 @@ int main(void)
 		{
 			Real_gyro_X_Y_Z_values[i] = Raw_gyro_X_Y_Z_values[i]/939.6544;//пересчет сырых данных в реальные Raw_gyro_X_Y_Z_values[i]/16.4/57.296, где 57.296 - пересчет в рад/с
 		}
+		
+		HMC5883L_Read(Raw_HDG_X_Y_Z_values); 
 
 		//dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
 		//sprintf(Gyro_data_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UART
@@ -226,11 +232,12 @@ int main(void)
 		//if(Transmit_UART >= How_often_Transmit_UART && GPS_str_is_ready == true)
 		if(GPS_str_is_ready == true)
 		{
-			dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
+			//dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
+			dtostrf(Raw_HDG_X_Y_Z_values[0], 4, 5, Float_to_char_buffer);
 			UART_send_Str(Float_to_char_buffer);
 			UART_send_char(' ');
-			dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
-			UART_send_Str(Float_to_char_buffer);
+			//dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
+			//UART_send_Str(Float_to_char_buffer);
 			UART_send_char('\n');
 			Transmit_UART = 0;
 		}

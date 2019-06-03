@@ -24,7 +24,6 @@
 #include "Lib/Hardware/Time.h"
 #include "Lib/PI//Regulators.h"
 #include "Lib/Encoder/GetSpeed.h"
-#include "Lib/HMC5883L/HMC5883L.h"
 
 
 //*******************глобальные переменные*******************

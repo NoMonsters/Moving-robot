@@ -21,7 +21,7 @@ void Turn_control(float OMEGA, float Velocity, float Current_OmegaZ, float *Omeg
 	Omega_LR_required[0] = 9.55*(omega_const_1 - omega_additional/2); //-9.55*omega_additional/2;
 	Omega_LR_required[1] = 9.55*(omega_const_2 + omega_additional/2); //9.55*omega_additional/2;
 }
-double getOmegaAim(double* lambda_aim, double* phi_aim, double lambda_tek, double phi_tek, double hdg, double abs_speed)
+double getOmegaAim(double lambda_aim, double phi_aim, double lambda_tek, double phi_tek, double hdg, double abs_speed)
 {
 	double x_aim = 0, y_aim = 0; //координаты цели в новой ортодромической СК
 	double speed_x = 0, speed_y = 0; //вектор скорости в ортодромической СК
@@ -36,8 +36,8 @@ double getOmegaAim(double* lambda_aim, double* phi_aim, double lambda_tek, doubl
 	const float pi = 3.14159265;
 
 
-	x_aim = ((lambda_aim[k] - lambda_tek)*pi / 180)*Earth_Radius;
-	y_aim = ((phi_aim[k] - phi_tek)*pi / 180)*Earth_Radius; //перевод в ортодромические координаты, инициализация СК в начальной точке
+	x_aim = ((lambda_aim - lambda_tek)*pi / 180)*Earth_Radius;
+	y_aim = ((phi_aim - phi_tek)*pi / 180)*Earth_Radius; //перевод в ортодромические координаты, инициализация СК в начальной точке
 	
 	abs_aim = sqrt(pow(x_aim, 2) + pow(y_aim, 2)); //расчет модуля вектора направления на цель
 	
@@ -94,10 +94,10 @@ double getOmegaAim(double* lambda_aim, double* phi_aim, double lambda_tek, doubl
 				}
 	 
 	//переключение на следующую цель
-	if (abs_aim < eps)
-	{
-		k++;
-	}
+	//if (abs_aim < eps)
+	//{
+	//	k++;
+	//}
 	
 	return alpha;
 }

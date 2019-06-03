@@ -5,6 +5,6 @@
 #include "../PI/Regulators.h"	
 
 void Turn_control(float, float, float, float *, bool);
-double getOmegaAim(double*, double*, double, double, double, double);
+double getOmegaAim(double, double, double, double, double, double);
 
 #endif

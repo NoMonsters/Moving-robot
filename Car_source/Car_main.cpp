@@ -93,8 +93,8 @@ int main(void)
 	
 	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
 	double omegaAim = 0;
-	double latitudeAim[] = {55.604868, 55.604868};
-	double longitudeAim[] = {38.069190, 38.069190};
+	double latitudeAim = 55.7701;
+	double longitudeAim = 37.6818;
 	
 	uint32_t Last_speed_check_right = 0, Last_speed_check_left = 0;
 	float Current_speed_left = 0;
@@ -103,12 +103,11 @@ int main(void)
 	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
 		
-	float Velocity = 0.1;
+	float Velocity = 0.2;
 	
 	bool straight = 0;
-	char Gyro_data_for_UART[20], Float_to_char_buffer[10];
+	char Float_to_char_buffer[10];
 	
-	float Raw_HDG_X_Y_Z_values[] = {0, 0, 0};
 	
 	Init_all();
 	sei();//разрешаем глобальные прерывания
@@ -116,18 +115,15 @@ int main(void)
     while (1) 
     {
 		omegaAim = 0;
+		
+		
 		//*************************Чтение данных с гироскопа**************************
 		Read_RawValue(Raw_gyro_X_Y_Z_values);
 		for (int i=0; i<=2; i++)
 		{
 			Real_gyro_X_Y_Z_values[i] = Raw_gyro_X_Y_Z_values[i]/939.6544;//пересчет сырых данных в реальные Raw_gyro_X_Y_Z_values[i]/16.4/57.296, где 57.296 - пересчет в рад/с
 		}
-		
-		HMC5883L_Read(Raw_HDG_X_Y_Z_values); 
-
-		//dtostrf(Real_gyro_X_Y_Z_values[2], 3, 2, Float_to_char_buffer);//Преобразуем float в char[] чтобы передать по UART
-		//sprintf(Gyro_data_for_UART, " %s ", Float_to_char_buffer);//Формируем красивую строку для передачи по UART
-		
+			
 		
 		
 		
@@ -135,9 +131,6 @@ int main(void)
 		if(GPS_str_is_ready == true)
 		{
 			parseGPS(GPS_str, GPSstatus, GPSlatitude, GPS_NS, GPSlongitude, GPS_WE, GPS_spd, GPS_hdg);
-			//dtostrf(GPSlatitude, 4, 5, Float_to_char_buffer);
-			//UART_send_Str(Float_to_char_buffer);	
-			//UART_send_char('\n');
 			GPS_str_is_ready = 0;
 		}
 		
@@ -146,10 +139,7 @@ int main(void)
 		//**************************Вычисление угловой скорости на цель**************************
 		if(Calc_Omega >= How_often_calc_omega && GPS_hdg != 0.0)
 		{
-			omegaAim = 0.3 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
-			dtostrf(omegaAim, 4, 5, Float_to_char_buffer);
-			//UART_send_Str(Float_to_char_buffer);
-			//UART_send_char('\n');
+			omegaAim = 0.3 * getOmegaAim(55.7701, 37.6818, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
 		}
 		
 		
@@ -190,20 +180,6 @@ int main(void)
 		
 		
 		
-		//*************************Проект считывания GPS с другой платы*******************************
-		/*if(Call_GPS >= How_often_Call_GPS)
-		{
-			I2C_Start_Wait(0xA0);
-			I2C_Write(0x96);
-			I2C_Repeated_Start(0xA0);
-			test = I2C_Read_Nack();
-			I2C_Stop();
-			Call_GPS = 0;
-		}*/
-		
-		
-		
-		
 		//*************************Прием GPS и формирование строки*******************************
 		if(Call_GPS >= How_often_call_GPS)
 		{
@@ -229,17 +205,27 @@ int main(void)
 		
 		
 		//*************************Передача в порт для тестов*******************************
-		//if(Transmit_UART >= How_often_Transmit_UART && GPS_str_is_ready == true)
-		if(GPS_str_is_ready == true)
+		/*if(Transmit_UART > How_often_Transmit_UART)
 		{
-			//dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
-			dtostrf(Raw_HDG_X_Y_Z_values[0], 4, 5, Float_to_char_buffer);
+			dtostrf(Real_gyro_X_Y_Z_values[2], 4, 5, Float_to_char_buffer);
 			UART_send_Str(Float_to_char_buffer);
-			UART_send_char(' ');
 			//dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
 			//UART_send_Str(Float_to_char_buffer);
 			UART_send_char('\n');
 			Transmit_UART = 0;
+		}*/
+		
+		
+		
+		if(GPS_str_is_ready == true)
+		{
+			//dtostrf(GPSlatitude, 4, 5, Float_to_char_buffer);
+			dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
+			UART_send_Str(Float_to_char_buffer);
+			UART_send_char(' ');
+			dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
+			UART_send_Str(Float_to_char_buffer);
+			UART_send_char('\n');
 		}
     }
 }

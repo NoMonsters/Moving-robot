@@ -1,12 +1,11 @@
 #include "GPS_str2double.h"
 
-int p = 10;
-int null_flag = 0;;
 
 double GPS_str2double(char* strL, char* strH)
 {
-	p = 10;
-	null_flag = 0;
+	int p = 10;
+	int null_flag = 0;
+	
 	while (atoi(strL) / p > 1)
 	{
 		p = p * 10;

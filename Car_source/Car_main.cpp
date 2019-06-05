@@ -92,8 +92,8 @@ int main(void)
 	
 	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
 	double omegaAim = 0;
-	double latitudeAim = 55.7701;
-	double longitudeAim = 37.6818;
+	double latitudeAim = 55.7648;
+	double longitudeAim = 37.6883;
 	
 	uint32_t Last_speed_check_right = 0, Last_speed_check_left = 0;
 	float Current_speed_left = 0;
@@ -130,15 +130,16 @@ int main(void)
 		if(GPS_str_is_ready == true)
 		{
 			parseGPS(GPS_str, GPSstatus, GPSlatitude, GPS_NS, GPSlongitude, GPS_WE, GPS_spd, GPS_hdg);
-			GPS_str_is_ready = 0;
+			GPS_str_is_ready = false;
 		}
 		
 		
 		
 		//**************************Вычисление угловой скорости на цель**************************
-		if(Calc_Omega >= How_often_calc_omega && GPS_hdg != 0.0)
+		if((Calc_Omega >= How_often_calc_omega) && (GPS_hdg != 0.0))
 		{
-			omegaAim = 0.3 * getOmegaAim(55.7701, 37.6818, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
+			omegaAim = 0.3 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
+			Calc_Omega = 0;
 		}
 		
 		
@@ -218,12 +219,17 @@ int main(void)
 		
 		if(GPS_str_is_ready == true)
 		{
-			//dtostrf(GPSlatitude, 4, 5, Float_to_char_buffer);
+			UART_send_Str(GPS_str);
+			UART_send_char('\n');
+			dtostrf(GPSlatitude, 4, 5, Float_to_char_buffer);
+			UART_send_Str(Float_to_char_buffer);
+			UART_send_char('\n');
 			dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
 			UART_send_Str(Float_to_char_buffer);
 			UART_send_char(' ');
 			dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
 			UART_send_Str(Float_to_char_buffer);
+			UART_send_char('\n');
 			UART_send_char('\n');
 		}
     }

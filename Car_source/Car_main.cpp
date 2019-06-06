@@ -92,8 +92,8 @@ int main(void)
 	
 	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
 	double omegaAim = 0;
-	double latitudeAim = 55.7648;
-	double longitudeAim = 37.6883;
+	double latitudeAim = 55.7902;
+	double longitudeAim = 37.5238;
 	
 	uint32_t Last_speed_check_right = 0, Last_speed_check_left = 0;
 	float Current_speed_left = 0;
@@ -113,6 +113,7 @@ int main(void)
 	
     while (1) 
     {
+		
 		omegaAim = 0;
 		
 		
@@ -221,9 +222,9 @@ int main(void)
 		{
 			UART_send_Str(GPS_str);
 			UART_send_char('\n');
-			dtostrf(GPSlatitude, 4, 5, Float_to_char_buffer);
-			UART_send_Str(Float_to_char_buffer);
-			UART_send_char('\n');
+			//dtostrf(GPSlongitude, 4, 5, Float_to_char_buffer);
+			//UART_send_Str(Float_to_char_buffer);
+			//UART_send_char('\n');
 			dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
 			UART_send_Str(Float_to_char_buffer);
 			UART_send_char(' ');

@@ -3,14 +3,14 @@
 
 double GPS_str2double(char* strL, char* strH)
 {
-	int p = 10;
+	double p = 10.0;
 	int null_flag = 0;
 	
-	while (atoi(strL) / p > 1)
+	while (atof(strL) / p > 1)
 	{
-		p = p * 10;
+		p = p * 10.0;
 	}
-	for (int i = 0; i < strlen(strL); i++)
+	for (int i = 0; i < 10; i++)
 	{
 		if (strL[i] != '0')
 		{
@@ -18,7 +18,7 @@ double GPS_str2double(char* strL, char* strH)
 		}
 		if ((strL[i] == '0') && (null_flag == 0))
 		{
-			p = p * 10;
+			p = p * 10.0;
 		}
 	}
 	return atof(strL) / p + atof(strH);

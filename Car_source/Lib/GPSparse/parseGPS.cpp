@@ -28,6 +28,11 @@ void parseGPS(const char* GPSstring, char* GPSstatus, double &GPSlatitude, char*
 	int q = 0; //количество символов в дробном числе до точки
 	
 	int latlon_buf_int = 0;
+	
+	memset(GPSlat_strL,'\0',10);
+	memset(GPSlat_strH,'\0',10);
+	memset(GPSlon_strL,'\0',10);
+	memset(GPSlon_strH,'\0',10);
 
 	for (int i = 0; i < strlen(GPSstring); i++)
 	{
@@ -71,6 +76,7 @@ void parseGPS(const char* GPSstring, char* GPSstatus, double &GPSlatitude, char*
 					if (point_flag == 0)
 					{
 						GPSlat_strH[l] = strbuf[l];
+
 					}
 					else
 						if (strbuf[l] != '.')
@@ -168,6 +174,7 @@ void parseGPS(const char* GPSstring, char* GPSstatus, double &GPSlatitude, char*
 			j = 0;
 			q = 0;
 			point_flag = 0;
+			memset(strbuf,'0',15);
 
 		}
 		else

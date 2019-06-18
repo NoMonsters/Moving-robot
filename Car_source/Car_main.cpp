@@ -92,8 +92,8 @@ int main(void)
 	
 	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
 	double omegaAim = 0;
-	double latitudeAim = 55.7902;
-	double longitudeAim = 37.5238;
+	double latitudeAim = 55.7687;
+	double longitudeAim = 37.6847;
 	
 	uint32_t Last_speed_check_right = 0, Last_speed_check_left = 0;
 	float Current_speed_left = 0;
@@ -102,7 +102,7 @@ int main(void)
 	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
 		
-	float Velocity = 0.2;
+	float Velocity = 0.4;
 	
 	bool straight = 0;
 	char Float_to_char_buffer[10];
@@ -114,7 +114,6 @@ int main(void)
     while (1) 
     {
 		
-		omegaAim = 0;
 		
 		
 		//*************************Чтение данных с гироскопа**************************
@@ -137,11 +136,23 @@ int main(void)
 		
 		
 		//**************************Вычисление угловой скорости на цель**************************
-		if((Calc_Omega >= How_often_calc_omega) && (GPS_hdg != 0.0))
+		if(Calc_Omega >= How_often_calc_omega)
 		{
-			omegaAim = 0.3 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
-			Calc_Omega = 0;
+			if(GPS_hdg != 0.0)
+			{
+				omegaAim = 0.8 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
+				Calc_Omega = 0;
+				//dtostrf(omegaAim, 4, 5, Float_to_char_buffer);
+				//UART_send_Str(Float_to_char_buffer);
+				//UART_send_char('\n');
+			}
+			else
+			{
+				omegaAim = 0;
+				Calc_Omega = 0;
+			}
 		}
+			
 		
 		
 		
@@ -174,7 +185,7 @@ int main(void)
 			Turn_control(omegaAim, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight);
 			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.7, 0.02)));//Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
 			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.7, 0.02)));//Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
-			
+					
 			Call_PI_reg = 0;
 		}
 		
@@ -206,33 +217,38 @@ int main(void)
 		
 		
 		//*************************Передача в порт для тестов*******************************
-		/*if(Transmit_UART > How_often_Transmit_UART)
+		if(Transmit_UART > How_often_Transmit_UART)
 		{
 			dtostrf(Real_gyro_X_Y_Z_values[2], 4, 5, Float_to_char_buffer);
 			UART_send_Str(Float_to_char_buffer);
-			//dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
-			//UART_send_Str(Float_to_char_buffer);
+			UART_send_char('\n');
+			dtostrf(omegaAim, 4, 5, Float_to_char_buffer);
+			UART_send_Str(Float_to_char_buffer);
+			UART_send_char('\n');
+			UART_send_Str(GPS_str);
+			UART_send_char('\n');
 			UART_send_char('\n');
 			Transmit_UART = 0;
-		}*/
+		}
 		
 		
 		
-		if(GPS_str_is_ready == true)
+		/*if(GPS_str_is_ready == true)
 		{
 			UART_send_Str(GPS_str);
 			UART_send_char('\n');
 			//dtostrf(GPSlongitude, 4, 5, Float_to_char_buffer);
 			//UART_send_Str(Float_to_char_buffer);
 			//UART_send_char('\n');
-			dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
+			//dtostrf(omegaAim*57.296, 4, 5, Float_to_char_buffer);
+			dtostrf(Real_gyro_X_Y_Z_values[2], 4, 5, Float_to_char_buffer);
 			UART_send_Str(Float_to_char_buffer);
-			UART_send_char(' ');
-			dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
-			UART_send_Str(Float_to_char_buffer);
+			//UART_send_char(' ');
+			//dtostrf(GPS_hdg, 4, 5, Float_to_char_buffer);
+			//UART_send_Str(Float_to_char_buffer);
 			UART_send_char('\n');
 			UART_send_char('\n');
-		}
+		}*/
     }
 }
 

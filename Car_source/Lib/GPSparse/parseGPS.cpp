@@ -174,7 +174,7 @@ void parseGPS(const char* GPSstring, char* GPSstatus, double &GPSlatitude, char*
 			j = 0;
 			q = 0;
 			point_flag = 0;
-			memset(strbuf,'0',15);
+			memset(strbuf,'\0',15);
 
 		}
 		else
@@ -187,11 +187,11 @@ void parseGPS(const char* GPSstring, char* GPSstatus, double &GPSlatitude, char*
 	GPSlatitude = GPS_str2double(GPSlat_strL, GPSlat_strH) / 100.0;
 	GPSlongitude = GPS_str2double(GPSlon_strL, GPSlon_strH) / 100.0;
 	
-	//latlon_buf_int = (int)GPSlatitude;
-	//GPSlatitude = (double)latlon_buf_int + (GPSlatitude - trunc(GPSlatitude)) * 100.0 / 60.0;
+	latlon_buf_int = (int)GPSlatitude;
+	GPSlatitude = (double)latlon_buf_int + (GPSlatitude - trunc(GPSlatitude)) * 100.0 / 60.0;
 	
-	//latlon_buf_int = (int)GPSlongitude;
-	//GPSlongitude = (double)latlon_buf_int + (GPSlongitude - trunc(GPSlongitude)) * 100.0 / 60.0;
+	latlon_buf_int = (int)GPSlongitude;
+	GPSlongitude = (double)latlon_buf_int + (GPSlongitude - trunc(GPSlongitude)) * 100.0 / 60.0;
 	
 	GPS_spd = GPS_str2double(GPS_spd_strL, GPS_spd_strH);
 	GPS_hdg = GPS_str2double(GPS_hdg_strL, GPS_hdg_strH);

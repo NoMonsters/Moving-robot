@@ -92,8 +92,8 @@ int main(void)
 	
 	double GPSlatitude = 0, GPSlongitude = 0, GPS_spd = 0, GPS_hdg = 0;
 	double omegaAim = 0;
-	double latitudeAim = 55.7687;
-	double longitudeAim = 37.6847;
+	double latitudeAim = 55.7667;
+	double longitudeAim = 37.6804;
 	
 	uint32_t Last_speed_check_right = 0, Last_speed_check_left = 0;
 	float Current_speed_left = 0;
@@ -136,22 +136,22 @@ int main(void)
 		
 		
 		//**************************Вычисление угловой скорости на цель**************************
-		if(Calc_Omega >= How_often_calc_omega)
+		if(GPS_hdg != 0.0)
 		{
-			if(GPS_hdg != 0.0)
+			if(Calc_Omega >= How_often_calc_omega)
 			{
-				omegaAim = 0.8 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
+				omegaAim = 0.1 * getOmegaAim(longitudeAim, latitudeAim, GPSlongitude, GPSlatitude, GPS_hdg, GPS_spd);
 				Calc_Omega = 0;
 				//dtostrf(omegaAim, 4, 5, Float_to_char_buffer);
 				//UART_send_Str(Float_to_char_buffer);
 				//UART_send_char('\n');
 			}
-			else
-			{
-				omegaAim = 0;
-				Calc_Omega = 0;
-			}
 		}
+		else 
+		{
+			omegaAim = 0.0;
+		}
+		
 			
 		
 		

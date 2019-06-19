@@ -14,9 +14,5 @@ void UART_send_char(char);
 void UART_send_Str(char*);
 void UART_send_Str(int);
 char UART_get_char();
-<<<<<<< HEAD
-=======
-
->>>>>>> NAV
 
 #endif

@@ -22,8 +22,9 @@
 #include "Lib/NAV/Navigation.h"
 #include "Lib/Hardware/HardwareSetup.h"
 #include "Lib/Hardware/Time.h"
-#include "Lib/PI//Regulators.h"
+#include "Lib/PI/Regulators.h"
 #include "Lib/Encoder/GetSpeed.h"
+#include "Lib/Filter/Filter.h"
 
 
 //*******************глобальные переменные*******************
@@ -99,7 +100,7 @@ int main(void)
 	float Current_speed_left = 0;
 	float Current_speed_right = 0;
 	
-	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0};
+	float Raw_gyro_X_Y_Z_values[] = {0, 0, 0}, Real_gyro_X_Y_Z_values[] = {0, 0, 0}, Filtered_gyro_X_Y_Z_values[] = {0, 0, 0};
 	float Omega_LR_required[] = {0, 0};
 		
 	float Velocity = 0.4;
@@ -111,6 +112,8 @@ int main(void)
 	Init_all();
 	sei();//разрешаем глобальные прерывания
 	
+	Filter filter = Filter(0.1, 0.09);
+	
     while (1) 
     {
 		
@@ -121,6 +124,7 @@ int main(void)
 		for (int i=0; i<=2; i++)
 		{
 			Real_gyro_X_Y_Z_values[i] = Raw_gyro_X_Y_Z_values[i]/939.6544;//пересчет сырых данных в реальные Raw_gyro_X_Y_Z_values[i]/16.4/57.296, где 57.296 - пересчет в рад/с
+			Filtered_gyro_X_Y_Z_values[i] = filter.Correct(Real_gyro_X_Y_Z_values[i]);
 		}
 			
 		
@@ -182,7 +186,7 @@ int main(void)
 		//*************************Применение регулирования*******************************
 		if(Call_PI_reg >= How_often_call_PI_reg)
 		{
-			Turn_control(omegaAim, Velocity, Real_gyro_X_Y_Z_values[2], Omega_LR_required, straight);
+			Turn_control(omegaAim, Velocity, Filtered_gyro_X_Y_Z_values[2], Omega_LR_required, straight);
 			OCR0B = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_right(Current_speed_right, Omega_LR_required[1], 0.7, 0.02)));//Omega_LR_required[1], 0.51, 0.15))); //0.187, 0.0712 0.208, 0.098
 			OCR0A = static_cast<uint8_t>(limiter(Min_output_for_Reg, Max_output_for_Reg,Apply_regulator_left(Current_speed_left, Omega_LR_required[0], 0.7, 0.02)));//Omega_LR_required[0], 0.51, 0.09)));  //0.207, 0.0792 0.208, 0.098
 					
@@ -219,7 +223,7 @@ int main(void)
 		//*************************Передача в порт для тестов*******************************
 		if(Transmit_UART > How_often_Transmit_UART)
 		{
-			dtostrf(Real_gyro_X_Y_Z_values[2], 4, 5, Float_to_char_buffer);
+			dtostrf(Filtered_gyro_X_Y_Z_values[2], 4, 5, Float_to_char_buffer);
 			UART_send_Str(Float_to_char_buffer);
 			UART_send_char('\n');
 			dtostrf(omegaAim, 4, 5, Float_to_char_buffer);
